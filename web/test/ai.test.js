@@ -53,6 +53,17 @@ test("generateSchedule retries one malformed model response then succeeds", asyn
   assert.equal(result.posts.length, 3);
 });
 
+test("generateSchedule owns metadata instead of trusting blank model identifiers", async () => {
+  const raw = rawSchedule();
+  raw.id = "";
+  raw.createdAt = "";
+  raw.posts = raw.posts.map((post) => ({ ...post, id: "" }));
+  const result = await generateSchedule(input, { now, request: async () => raw });
+  assert.match(result.id, /^schedule-/);
+  assert.equal(result.createdAt, now.toISOString());
+  assert.ok(result.posts.every((post) => post.id.startsWith("post-")));
+});
+
 test("generateSchedule fails after the second malformed response", async () => {
   let calls = 0;
   await assert.rejects(

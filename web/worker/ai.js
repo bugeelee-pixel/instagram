@@ -89,7 +89,17 @@ export async function generateSchedule(rawInput, options = {}) {
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
       const raw = await options.request(prompt);
-      return normalizeSchedule(raw, input, now);
+      const stamp = now.getTime();
+      const withMetadata = {
+        ...raw,
+        id: `schedule-${stamp}`,
+        createdAt: now.toISOString(),
+        input,
+        posts: Array.isArray(raw?.posts)
+          ? raw.posts.map((post, index) => ({ ...post, id: `post-${stamp}-${index + 1}` }))
+          : raw?.posts,
+      };
+      return normalizeSchedule(withMetadata, input, now);
     } catch (error) {
       lastError = error;
     }
