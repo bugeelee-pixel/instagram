@@ -4,9 +4,10 @@ export function escapeHtml(value) {
 
 export function formatPostForClipboard(post) {
   const slides = post.slides.map((text, index) => `${index + 1}장. ${text}`).join("\n");
+  const source = post.trendReason ? ["", "왜 지금 이 주제인가", post.trendReason, post.sourceTitle || "", post.sourceUrl || ""].join("\n") : "";
   return [
     `${post.date} | ${post.title}`, "", slides, "", "캡션", post.caption, "",
-    post.hashtags.join(" "), "", "사진 가이드", post.photoGuide, "", post.reviewNotice,
+    post.hashtags.join(" "), "", "사진 가이드", post.photoGuide, source, "", post.reviewNotice,
   ].join("\n");
 }
 
@@ -38,6 +39,7 @@ export function renderScheduleMarkup(schedule, selectedId) {
   const slides = selected.slides.map((slide, index) => `<li><span>${index + 1}</span><p>${escapeHtml(slide)}</p></li>`).join("");
   const flags = selected.reviewFlags?.length ? selected.reviewFlags.map((flag) => `<li>${escapeHtml(flag)}</li>`).join("") : "<li>특이 검토사항 없음</li>";
   const tags = selected.hashtags.map(escapeHtml).join(" ");
+  const trend = selected.trendReason ? `<section class="trend-card"><h4>왜 지금 이 주제인가</h4><p>${escapeHtml(selected.trendReason)}</p>${selected.sourceUrl ? `<a href="${escapeHtml(selected.sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(selected.sourceTitle || "참고 출처")}</a>` : ""}</section>` : "";
   return `<div class="schedule-head"><div><p class="eyebrow">CONTENT CALENDAR</p><h2>${posts.length}개 게시물 일정</h2></div><button class="ghost" type="button" data-copy="schedule">전체 일정 복사</button></div>
     <div class="planner-grid"><nav class="calendar" aria-label="게시물 날짜 선택">${postButtons}</nav>
     <article class="post-detail" data-selected-post="${escapeHtml(selected.id)}">
@@ -46,6 +48,7 @@ export function renderScheduleMarkup(schedule, selectedId) {
       <section class="content-card"><div class="card-heading"><h4>캡션</h4><button type="button" data-copy="caption">복사</button></div><p class="preserve">${escapeHtml(selected.caption)}</p></section>
       <section class="content-card"><div class="card-heading"><h4>해시태그</h4><button type="button" data-copy="hashtags">복사</button></div><p>${tags}</p></section>
       <section class="content-card"><div class="card-heading"><h4>사진 가이드</h4><button type="button" data-copy="photoGuide">복사</button></div><p class="preserve">${escapeHtml(selected.photoGuide)}</p></section>
+      ${trend}
       <section class="review-card"><h4>약사 검토 포인트</h4><ul>${flags}</ul><p>${escapeHtml(selected.reviewNotice)}</p></section>
       <button class="primary copy-post" type="button" data-copy="post">이 게시물 전체 복사</button>
     </article></div>`;

@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { REVIEW_NOTICE, buildPublishingDates } from "../worker/domain.js";
-import { buildSchedulePrompt, generateSchedule, regeneratePost } from "../worker/ai.js";
+import { buildSchedulePrompt, generateSchedule, regeneratePost, requestStructuredContent } from "../worker/ai.js";
 import { createWorker } from "../worker/index.js";
 
 const now = new Date("2026-10-18T09:00:00+09:00");
@@ -26,13 +26,18 @@ function rawSchedule(suffix = "") {
       photoGuide: "약국 내부 사진",
       reviewFlags: [],
       reviewNotice: REVIEW_NOTICE,
+      ...(index === 0 ? {
+        trendReason: "최근 2주간 관심이 높아진 주제",
+        sourceTitle: "보건당국 안내",
+        sourceUrl: "https://example.com/health",
+      } : {}),
     })),
   };
 }
 
 test("buildSchedulePrompt carries content mix, dates, context, and medical safety rules", () => {
   const prompt = buildSchedulePrompt(input, buildPublishingDates(input, now));
-  assert.match(prompt, /50%/);
+  assert.match(prompt, /40%/);
   assert.match(prompt, /20%/);
   assert.match(prompt, /4~6장/);
   assert.match(prompt, /진단|치료/);
@@ -40,6 +45,24 @@ test("buildSchedulePrompt carries content mix, dates, context, and medical safet
   assert.match(prompt, /2026-10-18/);
   assert.match(prompt, /오쏘몰/);
   assert.match(prompt, /10월 25일 휴무/);
+  assert.match(prompt, /최근 2~4주|최근 이슈/);
+  assert.match(prompt, /신뢰형 70%/);
+  assert.match(prompt, /공감형 30%/);
+  assert.match(prompt, /없는 약국 소식.*만들지/);
+});
+
+test("requestStructuredContent researches live trends before structured generation", async () => {
+  const bodies = [];
+  const fetchImpl = async (_url, options) => {
+    bodies.push(JSON.parse(options.body));
+    if (bodies.length === 1) return new Response(JSON.stringify({ output_text: "환절기 알레르기 관심 증가" }));
+    return new Response(JSON.stringify({ output_text: JSON.stringify(rawSchedule()) }));
+  };
+  const result = await requestStructuredContent("일정을 작성하세요", { OPENAI_API_KEY: "test", OPENAI_MODEL: "test" }, fetchImpl);
+  assert.equal(result.posts.length, 3);
+  assert.deepEqual(bodies[0].tools, [{ type: "web_search" }]);
+  assert.equal(bodies[0].tool_choice, "required");
+  assert.match(JSON.stringify(bodies[1].input), /환절기 알레르기 관심 증가/);
 });
 
 test("generateSchedule retries one malformed model response then succeeds", async () => {

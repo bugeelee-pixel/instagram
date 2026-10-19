@@ -63,6 +63,15 @@ function cleanOptional(value) {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
+function cleanSourceUrl(value) {
+  const cleaned = cleanOptional(value);
+  if (!cleaned) return undefined;
+  try {
+    const url = new URL(cleaned);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.href : undefined;
+  } catch { return undefined; }
+}
+
 export function normalizePost(raw, expectedDate) {
   if (!raw || typeof raw !== "object") throw new Error("게시물 형식이 올바르지 않습니다.");
   const slides = Array.isArray(raw.slides) ? raw.slides.map((value) => cleanRequired(value, "카드 문구")) : [];
@@ -71,7 +80,7 @@ export function normalizePost(raw, expectedDate) {
   if (raw.reviewNotice !== REVIEW_NOTICE) throw new Error("약사 검토 안내가 필요합니다.");
   const date = cleanRequired(raw.date, "게시 날짜");
   if (expectedDate && date !== expectedDate) throw new Error("요청한 게시 날짜와 일치하지 않습니다.");
-  return {
+  const normalized = {
     id: cleanRequired(raw.id, "게시물 ID"),
     date,
     title: cleanRequired(raw.title, "제목"),
@@ -83,6 +92,13 @@ export function normalizePost(raw, expectedDate) {
     reviewFlags: Array.isArray(raw.reviewFlags) ? raw.reviewFlags.map((value) => String(value).trim()).filter(Boolean) : [],
     reviewNotice: REVIEW_NOTICE,
   };
+  const trendReason = cleanOptional(raw.trendReason);
+  const sourceTitle = cleanOptional(raw.sourceTitle);
+  const sourceUrl = cleanSourceUrl(raw.sourceUrl);
+  if (trendReason) normalized.trendReason = trendReason;
+  if (sourceTitle) normalized.sourceTitle = sourceTitle;
+  if (sourceUrl) normalized.sourceUrl = sourceUrl;
+  return normalized;
 }
 
 export function normalizeSchedule(raw, rawInput, now = new Date()) {

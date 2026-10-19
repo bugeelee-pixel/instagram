@@ -13,8 +13,11 @@ const postSchema = {
     photoGuide: stringField,
     reviewFlags: { type: "array", items: stringField },
     reviewNotice: { type: "string", const: REVIEW_NOTICE },
+    trendReason: stringField,
+    sourceTitle: stringField,
+    sourceUrl: stringField,
   },
-  required: ["id", "date", "title", "contentType", "slides", "caption", "hashtags", "photoGuide", "reviewFlags", "reviewNotice"],
+  required: ["id", "date", "title", "contentType", "slides", "caption", "hashtags", "photoGuide", "reviewFlags", "reviewNotice", "trendReason", "sourceTitle", "sourceUrl"],
 };
 
 export const SCHEDULE_JSON_SCHEMA = {
@@ -43,12 +46,17 @@ export function buildSchedulePrompt(rawInput, dates) {
   return [
     "메디박스 약국 전용 인스타그램 사진 게시 일정과 문구를 JSON으로 작성하세요.",
     `게시 날짜는 정확히 다음 순서로 사용하세요: ${dates.join(", ")}`,
-    "기본 비율은 건강정보 50%, 약국·동네 이야기 20%, 브랜드·제품 20%, 방문 안내 10%입니다.",
+    "콘텐츠 전략은 신뢰형 70%와 공감형 30%의 혼합형입니다.",
+    "주제 비율은 최근 2~4주 이슈 해설 40%, 저장형 실용정보 30%, 메디박스 소식·입점 제품·행사 20%, 댓글·공유형 약국 공감 10%입니다.",
+    "게시물 수가 적어 정확한 비율이 어렵다면 최근 이슈 1개와 저장형 정보 1개를 반드시 포함하세요.",
     `중점 주제: ${input.emphasis}`,
-    `브랜드·제품 맥락: ${input.brands || "없음"}`,
+    `메디박스 소식·입점 브랜드 맥락: ${input.brands || "없음"}`,
     `휴무·행사·특별 일정: ${input.events || "없음"}`,
     "각 게시물은 카드뉴스 4~6장, 본문, 해시태그, 준비할 사진 안내를 포함하세요.",
     "쉽고 친근한 약사 말투를 사용하고 같은 제목이나 주제를 반복하지 마세요.",
+    "첫 장은 질문, 반전, 체크리스트, 즉시 쓸 수 있는 결론 중 하나로 시작해 저장·공유하고 싶게 만드세요. 선정적 공포나 과장은 금지합니다.",
+    "최근 이슈 게시물은 trendReason에 왜 지금 다룰 주제인지 적고 sourceTitle과 sourceUrl에 실제 참고 출처를 넣으세요. 나머지는 세 필드를 빈 문자열로 두세요.",
+    "사용자가 제공하지 않은 메디박스 입점, 행사, 재고, 서비스 등 없는 약국 소식은 절대 만들지 마세요.",
     "질환을 진단하거나 치료 효과·효능을 보장하거나 단정하지 마세요. 개인 상황에 따라 달라지는 내용은 약사 상담을 권하세요.",
     `모든 게시물의 reviewNotice는 정확히 '${REVIEW_NOTICE}'여야 합니다. 사실 확인이 필요한 내용은 reviewFlags에 적으세요.`,
     "약국명은 메디박스 약국입니다. 알 수 없는 지역, 주소, 운영시간은 빈 문자열로 두세요.",
@@ -67,12 +75,25 @@ function outputText(response) {
 
 export async function requestStructuredContent(prompt, env, fetchImpl = fetch) {
   if (!env?.OPENAI_API_KEY || !env?.OPENAI_MODEL) throw new Error("OPENAI_CONFIG_MISSING");
-  const response = await fetchImpl("https://api.openai.com/v1/responses", {
+  const headers = { "authorization": `Bearer ${env.OPENAI_API_KEY}`, "content-type": "application/json" };
+  const researchResponse = await fetchImpl("https://api.openai.com/v1/responses", {
     method: "POST",
-    headers: { "authorization": `Bearer ${env.OPENAI_API_KEY}`, "content-type": "application/json" },
+    headers,
     body: JSON.stringify({
       model: env.OPENAI_MODEL,
-      input: [{ role: "system", content: "당신은 약국의 안전한 소셜 콘텐츠 편집자입니다." }, { role: "user", content: prompt }],
+      tools: [{ type: "web_search" }],
+      tool_choice: "required",
+      input: "오늘을 기준으로 최근 2~4주 사이 한국에서 관심이 높아진 건강·의약품·계절성 생활건강 이슈를 찾아주세요. 식약처, 질병관리청, 보건복지부 등 공신력 있는 출처를 우선하고, 약국 인스타그램에서 과장 없이 설명하기 좋은 주제 5개를 출처명과 URL과 함께 간단히 정리하세요.",
+    }),
+  });
+  if (!researchResponse.ok) throw new Error(`OPENAI_RESEARCH_${researchResponse.status}`);
+  const trendContext = outputText(await researchResponse.json());
+  const response = await fetchImpl("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      model: env.OPENAI_MODEL,
+      input: [{ role: "system", content: "당신은 최신 근거를 확인하며 약국의 저장·공유형 소셜 콘텐츠를 만드는 편집자입니다." }, { role: "user", content: `${prompt}\n\n최신 이슈 조사 결과:\n${trendContext}` }],
       text: { format: { type: "json_schema", name: "medibox_schedule", strict: true, schema: SCHEDULE_JSON_SCHEMA } },
     }),
   });
