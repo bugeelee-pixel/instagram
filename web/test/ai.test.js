@@ -37,8 +37,9 @@ function rawSchedule(suffix = "") {
 
 test("buildSchedulePrompt carries content mix, dates, context, and medical safety rules", () => {
   const prompt = buildSchedulePrompt(input, buildPublishingDates(input, now));
-  assert.match(prompt, /40%/);
-  assert.match(prompt, /20%/);
+  assert.match(prompt, /약물[^\n]*40%/);
+  assert.match(prompt, /건강기능식품[^\n]*35%/);
+  assert.match(prompt, /일반 건강정보[^\n]*25%/);
   assert.match(prompt, /4~6장/);
   assert.match(prompt, /진단|치료/);
   assert.match(prompt, new RegExp(REVIEW_NOTICE));
@@ -55,14 +56,20 @@ test("requestStructuredContent researches live trends before structured generati
   const bodies = [];
   const fetchImpl = async (_url, options) => {
     bodies.push(JSON.parse(options.body));
-    if (bodies.length === 1) return new Response(JSON.stringify({ output_text: "환절기 알레르기 관심 증가" }));
     return new Response(JSON.stringify({ output_text: JSON.stringify(rawSchedule()) }));
   };
   const result = await requestStructuredContent("일정을 작성하세요", { OPENAI_API_KEY: "test", OPENAI_MODEL: "test" }, fetchImpl);
   assert.equal(result.posts.length, 3);
+  assert.equal(bodies.length, 1);
   assert.deepEqual(bodies[0].tools, [{ type: "web_search" }]);
   assert.equal(bodies[0].tool_choice, "required");
-  assert.match(JSON.stringify(bodies[1].input), /환절기 알레르기 관심 증가/);
+  assert.match(bodies[0].input, /뉴스/);
+  assert.match(bodies[0].input, /인스타그램|SNS/);
+  assert.match(bodies[0].input, /약물/);
+  assert.match(bodies[0].input, /건강기능식품/);
+  assert.match(bodies[0].input, /교차 확인|사실 확인/);
+  assert.match(bodies[0].input, /일정을 작성하세요/);
+  assert.equal(bodies[0].text.format.type, "json_schema");
 });
 
 test("generateSchedule retries one malformed model response then succeeds", async () => {
