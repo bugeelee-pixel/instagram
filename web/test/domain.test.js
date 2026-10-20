@@ -39,7 +39,8 @@ function validRawSchedule() {
     posts: dates.map((date, index) => ({
       id: `post-${index + 1}`,
       date,
-      title: `게시물 ${index + 1}`,
+      title: `오메가3 ${index + 1}, 같이 먹어도 될까요?`,
+      hookKeyword: "오메가3",
       contentType: ["health", "pharmacy", "visit"][index],
       slides: ["첫 장", "둘째 장", "셋째 장", "넷째 장"],
       caption: "친근한 설명입니다.",
@@ -47,6 +48,9 @@ function validRawSchedule() {
       photoGuide: "약국 내부 사진",
       reviewFlags: [],
       reviewNotice: REVIEW_NOTICE,
+      trendReason: "최근 SNS에서 관심이 높아진 주제",
+      sourceTitle: "공식 안전정보",
+      sourceUrl: "https://example.com/official",
     })),
     pharmacy: { name: "메디박스 약국", region: "  ", address: "", hours: "" },
   };
@@ -69,4 +73,17 @@ test("normalizeSchedule rejects missing pharmacist review notice", () => {
   const raw = validRawSchedule();
   raw.posts[0].reviewNotice = "";
   assert.throws(() => normalizeSchedule(raw, baseInput, new Date("2026-10-18T09:00:00+09:00")), /검토 안내/);
+});
+
+test("normalizeSchedule rejects a title that omits its concrete hook keyword", () => {
+  const raw = validRawSchedule();
+  raw.posts[0].hookKeyword = "에페";
+  raw.posts[0].title = "다이어트 치료제 최신 정보";
+  assert.throws(() => normalizeSchedule(raw, baseInput, new Date("2026-10-18T09:00:00+09:00")), /후킹 키워드/);
+});
+
+test("normalizeSchedule rejects a viral topic without an official source URL", () => {
+  const raw = validRawSchedule();
+  raw.posts[0].sourceUrl = "";
+  assert.throws(() => normalizeSchedule(raw, baseInput, new Date("2026-10-18T09:00:00+09:00")), /출처/);
 });

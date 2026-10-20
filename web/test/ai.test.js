@@ -18,7 +18,8 @@ function rawSchedule(suffix = "") {
     posts: dates.map((date, index) => ({
       id: `post-${index + 1}`,
       date,
-      title: `게시물 ${index + 1}${suffix}`,
+      title: `오메가3 ${index + 1}, 같이 먹어도 될까요?${suffix}`,
+      hookKeyword: "오메가3",
       contentType: ["health", "pharmacy", "visit"][index],
       slides: ["첫 장", "둘째 장", "셋째 장", "넷째 장"],
       caption: `본문 ${index + 1}`,
@@ -26,11 +27,9 @@ function rawSchedule(suffix = "") {
       photoGuide: "약국 내부 사진",
       reviewFlags: [],
       reviewNotice: REVIEW_NOTICE,
-      ...(index === 0 ? {
-        trendReason: "최근 2주간 관심이 높아진 주제",
-        sourceTitle: "보건당국 안내",
-        sourceUrl: "https://example.com/health",
-      } : {}),
+      trendReason: "최근 2주간 관심이 높아진 주제",
+      sourceTitle: "보건당국 안내",
+      sourceUrl: "https://example.com/health",
     })),
   };
 }
@@ -46,10 +45,14 @@ test("buildSchedulePrompt carries content mix, dates, context, and medical safet
   assert.match(prompt, /2026-10-18/);
   assert.match(prompt, /오쏘몰/);
   assert.match(prompt, /10월 25일 휴무/);
-  assert.match(prompt, /최근 2~4주|최근 이슈/);
+  assert.match(prompt, /최근 뉴스/);
   assert.match(prompt, /신뢰형 70%/);
   assert.match(prompt, /공감형 30%/);
   assert.match(prompt, /없는 약국 소식.*만들지/);
+  assert.match(prompt, /약명.*성분명.*제품군/);
+  assert.match(prompt, /일반론|두루뭉술/);
+  assert.match(prompt, /궁금증|비교|반전/);
+  assert.match(prompt, /왜 지금 화제|오해와 주의점|저장할 결론/);
 });
 
 test("requestStructuredContent researches live trends before structured generation", async () => {
@@ -69,6 +72,11 @@ test("requestStructuredContent researches live trends before structured generati
   assert.match(bodies[0].input, /건강기능식품/);
   assert.match(bodies[0].input, /교차 확인|사실 확인/);
   assert.match(bodies[0].input, /일정을 작성하세요/);
+  assert.match(bodies[0].input, /최근 14일|최근 2주/);
+  assert.match(bodies[0].input, /에페글레나타이드|에페/);
+  assert.match(bodies[0].input, /위고비.*마운자로|마운자로.*위고비/);
+  assert.match(bodies[0].input, /마그네슘|유산균|오메가3/);
+  assert.match(bodies[0].input, /구체적인 약명|구체적.*성분명/);
   assert.equal(bodies[0].text.format.type, "json_schema");
 });
 

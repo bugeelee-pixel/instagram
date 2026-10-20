@@ -80,10 +80,18 @@ export function normalizePost(raw, expectedDate) {
   if (raw.reviewNotice !== REVIEW_NOTICE) throw new Error("약사 검토 안내가 필요합니다.");
   const date = cleanRequired(raw.date, "게시 날짜");
   if (expectedDate && date !== expectedDate) throw new Error("요청한 게시 날짜와 일치하지 않습니다.");
+  const title = cleanRequired(raw.title, "제목");
+  const hookKeyword = cleanRequired(raw.hookKeyword, "후킹 키워드");
+  if (!title.toLocaleLowerCase("ko-KR").includes(hookKeyword.toLocaleLowerCase("ko-KR"))) throw new Error("제목에 후킹 키워드가 포함되어야 합니다.");
+  const trendReason = cleanRequired(raw.trendReason, "화제 이유");
+  const sourceTitle = cleanRequired(raw.sourceTitle, "공식 출처명");
+  const sourceUrl = cleanSourceUrl(raw.sourceUrl);
+  if (!sourceUrl) throw new Error("공식 출처 URL이 필요합니다.");
   const normalized = {
     id: cleanRequired(raw.id, "게시물 ID"),
     date,
-    title: cleanRequired(raw.title, "제목"),
+    title,
+    hookKeyword,
     contentType: raw.contentType,
     slides,
     caption: cleanRequired(raw.caption, "본문"),
@@ -91,13 +99,10 @@ export function normalizePost(raw, expectedDate) {
     photoGuide: cleanRequired(raw.photoGuide, "사진 안내"),
     reviewFlags: Array.isArray(raw.reviewFlags) ? raw.reviewFlags.map((value) => String(value).trim()).filter(Boolean) : [],
     reviewNotice: REVIEW_NOTICE,
+    trendReason,
+    sourceTitle,
+    sourceUrl,
   };
-  const trendReason = cleanOptional(raw.trendReason);
-  const sourceTitle = cleanOptional(raw.sourceTitle);
-  const sourceUrl = cleanSourceUrl(raw.sourceUrl);
-  if (trendReason) normalized.trendReason = trendReason;
-  if (sourceTitle) normalized.sourceTitle = sourceTitle;
-  if (sourceUrl) normalized.sourceUrl = sourceUrl;
   return normalized;
 }
 
