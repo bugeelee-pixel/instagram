@@ -1,0 +1,63 @@
+<!--
+  구조화 데이터(JSON-LD): 구글·AI 검색이 "이곳은 {{지역}}에 있는 약국이고
+  주소·영업시간·전화번호가 이렇다"를 정확히 이해하도록 돕습니다.
+  <head> 또는 </body> 바로 앞에 붙여 넣으세요.
+  주소·전화·영업시간은 네이버 스마트플레이스, 카카오맵, 구글 비즈니스 프로필과
+  글자 하나까지 똑같이 맞추는 것이 중요합니다.
+-->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Pharmacy",
+  "@id": "https://hello.medibox.my/#pharmacy",
+  "name": "메디박스",
+  "alternateName": ["메디박스 약국", "메디박스 창고형 약국", "MEDIBOX"],
+  "description": "{{지역}}에 있는 창고형 약국. 일반의약품, 영양제, 건강기능식품, 생활건강용품을 대용량 창고형 매장에서 합리적인 가격에 판매하며 약사 상담을 제공합니다.",
+  "url": "https://hello.medibox.my/",
+  "image": "https://hello.medibox.my/{{매장사진.jpg}}",
+  "logo": "https://hello.medibox.my/{{로고.png}}",
+  "telephone": "{{+82-0-0000-0000}}",
+  "priceRange": "₩",
+  "currenciesAccepted": "KRW",
+  "paymentAccepted": "현금, 신용카드, {{지역화폐 등}}",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "{{도로명 주소}}",
+    "addressLocality": "{{시/구}}",
+    "addressRegion": "{{시/도}}",
+    "postalCode": "{{우편번호}}",
+    "addressCountry": "KR"
+  },
+  "geo": {
+    "@type": "GeoCoordinates",
+    "latitude": {{위도 예: 37.5665}},
+    "longitude": {{경도 예: 126.9780}}
+  },
+  "hasMap": "{{네이버 지도 또는 구글 지도 링크}}",
+  "openingHoursSpecification": [
+    {
+      "@type": "OpeningHoursSpecification",
+      "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+      "opens": "{{09:00}}",
+      "closes": "{{21:00}}"
+    },
+    {
+      "@type": "OpeningHoursSpecification",
+      "dayOfWeek": ["Saturday", "Sunday"],
+      "opens": "{{10:00}}",
+      "closes": "{{18:00}}"
+    }
+  ],
+  "amenityFeature": [
+    { "@type": "LocationFeatureSpecification", "name": "주차", "value": {{true/false}} },
+    { "@type": "LocationFeatureSpecification", "name": "약사 상담", "value": true }
+  ],
+  "areaServed": ["{{동네1}}", "{{동네2}}", "{{시/구}}"],
+  "keywords": "창고형 약국, 저렴한 약국, 대형 약국, {{지역}} 약국, 영양제, 건강기능식품, 일반의약품",
+  "sameAs": [
+    "{{네이버 플레이스 URL}}",
+    "{{카카오맵 URL}}",
+    "{{인스타그램 URL}}"
+  ]
+}
+</script>
