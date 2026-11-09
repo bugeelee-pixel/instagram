@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!-- 빌더(아임웹·Wix 등)는 sitemap.xml을 자동으로 만들어 주므로 이 파일은 직접 만든 사이트일 때만 사용하세요. -->
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://hello.medibox.my/</loc><lastmod>{{YYYY-MM-DD}}</lastmod></url>
-  <!-- 페이지가 더 있으면 같은 형식으로 추가 -->
-</urlset>
